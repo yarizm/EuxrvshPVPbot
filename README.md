@@ -1,2 +1,3 @@
 # EuxrvshPVPbot
 用于EuxrvshPVP游戏使用的QQ官方bot
+有兴趣的hxd可以加q：2369866525
