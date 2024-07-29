@@ -1,0 +1,2 @@
+# EuxrvshPVPbot
+用于EuxrvshPVP游戏使用的QQ官方bot
