@@ -48,7 +48,30 @@ async def roleid(api: BotAPI, message: Message,params=None):
 
     return True
 
+# 使用计时功能
+@Commands("/REMTIME","/remtime")
+async def remtime(api: BotAPI, message: Message,params=None):
+    params = params.split()
+    result = game.timerem(params[0],params[1],params[2])
+    await message.reply(content=f"\n{result}")
 
+    return True
+# 查看当前计时
+@Commands("/TIMEINFO","/timeinfo")
+async def timeinfo(api: BotAPI, message: Message,params=None):
+    result = game.timeinfo()
+    result = '\n\n'.join(str(elem) for elem in result)
+    await message.reply(content=f"\n{result}")
+
+    return True
+# 手动修改计时
+@Commands("/TIMESET","/timeset")
+async def timeset(api: BotAPI, message: Message,params=None):
+    params = params.split()
+    result = game.remsubhand(params[0],params[1],params[2])
+    await message.reply(content=f"\n{result}")
+
+    return True
 
 # 更改角色的HP
 @Commands("/HPC","/hpc")
@@ -188,6 +211,7 @@ async def Rate33(api: BotAPI, message: Message, params=None):
 async def out(api: BotAPI, message: Message,params=None):
 
     game.resetdef()
+    game.remsubauto()
     result1 = game.turnend(1)
     result = game.outprint()
     result1 = '\n\n'.join(str(elem) for elem in result1)
@@ -213,6 +237,7 @@ async def end(api: BotAPI, message: Message,params=None):
 
     nowturn = game.turnnum()
     nowturn = int(nowturn)
+    game.remreset()
     result = game.endgame()
     print(result)
     await message.reply(content=f"游戏已经结束!\n\n"
@@ -237,7 +262,10 @@ async def help(api: BotAPI, message: Message,params=None):
                                 "改变DEF：/DEFC + 玩家id + 改变数值(正加负减) \n"
                                 "改变CD：/CDC + 玩家id + 技能编号 + 改变数值(正加负减) \n"
                                 "使用技能：/SKILL + 玩家id + 技能编号 \n"
-                                "改变攻击距离：/DISC + 玩家id + 改变数值(正加负减)\n")
+                                "改变攻击距离：/DISC + 玩家id + 改变数值(正加负减)\n"
+                                "使用计时功能：/REMTIME + 玩家id + 计时名(自定义) + 计时数\n"
+                                "手动更改计时:/TIMESET + 玩家id + 计时名(自定义) + 改变数值(正加负减)\n"
+                                "查看计时:/TIMEINFO")
     return True
 
 class MyClient(botpy.Client):
@@ -266,6 +294,10 @@ class MyClient(botpy.Client):
             skill,
             roledata,
             help,
+            timeinfo,
+            remtime,
+            timeset,
+
         ]
         for handler in handlers:
             if await handler(api=self.api, message=message):

@@ -37,7 +37,7 @@ def latergiveup(id):
         havewin = int(havewin)
         if(havewin == 1):
             query1 = "UPDATE euxrate SET iswin = %s,x_value = %s,isdiff = %s,winrate = %s WHERE id = %s"
-            value1 = (0,0,0,0.8,id)
+            value1 = (0,0,0,0.75,id)
             cursor.execute(query1,value1)
             db.commit()
             print(f"玩家{id}已经在判定结束后放弃,该名玩家下次获得行动机会的概率为0.8")
@@ -138,7 +138,7 @@ def pickrole(id,rid):
 # 获取所有角色的信息
 def roleinfo():
     res = []
-    query1 = "SELECT id,name FROM roleora ORDER BY id ASC"
+    query1 = "SELECT id,name,artinfo FROM roleora ORDER BY id ASC"
     cursor.execute(query1)
     result = cursor.fetchall()
     res = result
@@ -223,7 +223,7 @@ def cd_change(id,value,num):
             db.commit()
             res = f"玩家{id}的技能{value}的cd已更改，当前cd为{nowcd}"
     return res
-# 回合结束自然cd变动
+# 回合结束自然cd变动以及输出数据
 def turnend(sign):
     res = []
     tres = []
@@ -270,9 +270,108 @@ def turnend(sign):
 
             tres.append(qres)
     return tres
+# 计时功能
+def timerem(id,word,value):
+    turntime = turnnum()
+    value = int(value)
+    rem = []
+    query1 = "SELECT rem_1,rem_2,rem_3,rem_4 FROM remtime WHERE player = %s"
+    value1 = (id,)
+    cursor.execute(query1, value1)
+    result1 = cursor.fetchall()
+    for row in result1:
+        for j in range(4):
+            rem.append(row[j])
+            if (rem[j] == None):
+                query2 = f"UPDATE remtime SET rem_{j + 1} = %s,rem_{j + 1}_word = %s WHERE player = %s"
+                value2 = (value,word,id)
+                cursor.execute(query2, value2)
+                db.commit()
+                break
+    res = f"玩家{id}已经添加了名为：{word}；持续时间为：{value}回合的计时！该计时将在第{turntime+value}回合结束！"
+    return res
 
+# 计时自然减少
+def remsubauto():
+    play_num = playnum()
+    for i in range(play_num):
+        rem = []
+        query1 = "SELECT rem_1,rem_2,rem_3,rem_4 FROM remtime WHERE player = %s"
+        value1 = (i + 1,)
+        cursor.execute(query1, value1)
+        result1 = cursor.fetchall()
+        for row in result1:
+            for j in range(4):
+                rem.append(row[j])
+                if (rem[j] and rem[j] != 0):
+                    rem[j] -= 1
+                    query2 = f"UPDATE remtime SET rem_{j + 1} = %s WHERE player = %s"
+                    value2 = (rem[j], i + 1)
+                    cursor.execute(query2, value2)
+                    db.commit()
+                elif rem[j] == 0:
+                    query3 = f"UPDATE remtime SET rem_{j + 1} = %s,rem_{j+1}_word = %s WHERE player = %s"
+                    value3 = (None,None,i + 1)
+                    cursor.execute(query3, value3)
+                    db.commit()
+    return True
 
+# 计时手动减少
+def remsubhand(id,word,value):
+    value = int(value)
+    query1 = "SELECT rem_1,rem_2,rem_3,rem_4,rem_1_word,rem_2_word,rem_3_word,rem_4_word FROM remtime WHERE player = %s"
+    value1 = (id,)
+    cursor.execute(query1, value1)
+    result1 = cursor.fetchall()
+    rem = []
+    wo = []
+    for row in result1:
+        for j in range(4):
+            rem.append(row[j])
+            wo.append(row[j+4])
+            if(rem[j] and rem[j] != 0 and wo[j] == word):
+                print(wo[j],word)
+                rem[j] += value
+                query2 = f"UPDATE remtime SET rem_{j + 1} = %s WHERE player = %s"
+                value2 = (rem[j],id)
+                cursor.execute(query2, value2)
+                db.commit()
+                res = f"玩家{id}的名为:{word}的计时已经更改！当前为：{rem[j]}!"
+                return res
 
+# 重置计时
+def remreset():
+    query2 = f"UPDATE remtime SET rem_1 = %s,rem_2 = %s,rem_3 = %s,rem_4 = %s,rem_1_word = %s,rem_2_word = %s,rem_3_word = %s,rem_4_word = %s"
+    value2 = (None,None,None,None,None,None,None,None)
+    cursor.execute(query2, value2)
+    db.commit()
+    return True
+
+# 查看计时信息
+def timeinfo():
+    play_num = playnum()
+    res = []
+
+    for i in range(play_num):
+        rem = []
+        wo = []
+        cam = []
+        query1 = "SELECT rem_1,rem_2,rem_3,rem_4,rem_1_word,rem_2_word,rem_3_word,rem_4_word FROM remtime WHERE player = %s"
+        value1 = (i+1,)
+        cursor.execute(query1, value1)
+        result1 = cursor.fetchall()
+        for row in result1:
+            for j in range(4):
+                rem.append(row[j])
+                wo.append(row[j+4])
+                if(rem[j] and rem[j] != 0):
+                    cam.append(f"计时:{wo[j]},当前还有：{rem[j]}回合! \n")
+        req = f"玩家{i+1}的计时一览: \n"
+        for j in range(len(cam)):
+            req += cam[j]
+        res.append(req)
+
+    return res
 
 
 
@@ -510,7 +609,7 @@ def calculate_probability_Y(i):
             else:
                 x_values[i] = 0
                 initial_probability_X[i] = 0.5
-            initial_probability_X[i] = initial_probability_X[i] - 0.5 * (1 - math.exp(-0.1 * abs(x_values[i])))
+            # initial_probability_X[i] = initial_probability_X[i] - 0.5 * (1 - math.exp(-0.1 * abs(x_values[i])))
         else:
             if (isdiff[i] == 0):
                 x_values[i] += 1
