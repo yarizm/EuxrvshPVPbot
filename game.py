@@ -16,6 +16,7 @@ db = mysql.connector.connect(
 # 创建游标对象，用于执行SQL查询
 cursor = db.cursor()
 
+# 定义变量
 x_values = []
 isWin = []
 isdiff = []
@@ -25,9 +26,12 @@ giveturn = []
 initial_probability_X = []
 play_num = 0
 
+
 # 后置放弃
 def latergiveup(id):
+    # 返回集合
     res = []
+    # 从euxrate表中查询iswin
     query = "SELECT iswin FROM euxrate WHERE id = %s"
     value = (id,)
     cursor.execute(query,value)
@@ -35,26 +39,30 @@ def latergiveup(id):
     for row in result:
         havewin = row[0]
         havewin = int(havewin)
+        # 判断iswin是否为1
         if(havewin == 1):
+            # 将euxrate表中的 iswin，x_value，isdiff修改为0，winrate修改为0.65
             query1 = "UPDATE euxrate SET iswin = %s,x_value = %s,isdiff = %s,winrate = %s WHERE id = %s"
-            value1 = (0,0,0,0.75,id)
+            value1 = (0,0,0,0.65,id)
             cursor.execute(query1,value1)
             db.commit()
-            print(f"玩家{id}已经在判定结束后放弃,该名玩家下次获得行动机会的概率为0.8")
-            res = [f"玩家{id}已经在判定结束后放弃,该名玩家下次获得行动机会的概率为0.8"]
+            print(f"玩家{id}已经在判定结束后放弃,该名玩家下次获得行动机会的概率为0.65")
+            res = [f"玩家{id}已经在判定结束后放弃,该名玩家下次获得行动机会的概率为0.65"]
         else:
             print(f"玩家{id}没有行动机会，不能放弃回合！")
             res = [f"玩家{id}没有行动机会，不能放弃回合！"]
     return res
+
+
 # 前置放弃
 def beforegiveup(id):
-    #将数据表中的isgive变更为1
+    # 将数据表中的isgive变更为1
     turn = 0
     query = "UPDATE euxrate SET isgive = %s WHERE id = %s"
     value = (1,id)
     cursor.execute(query,value)
     db.commit()
-
+    # 查询euxrate表中的giveturn
     query1 = "SELECT giveturn FROM euxrate WHERE id = %s"
     value1 = (id,)
     cursor.execute(query1,value1)
@@ -66,28 +74,40 @@ def beforegiveup(id):
     res = [f"玩家{id}已经在判定开始前放弃,当前已连续放弃{turn}个回合"]
 
     return res
+
+
 # 游戏内概率判定
 def rate50():
     return random.random() < 0.5
+
+
 def rate66():
     return random.random() < 0.66
+
+
 def rate33():
     return random.random() < 0.33
+
+
 def rate75():
     return random.random() < 0.75
+
+
 def rate25():
     return random.random() < 0.25
 
+
 # 启动游戏
 def startgame(params):
-    #获取游戏人数
+    # 获取游戏人数
     play_num = int(params)
-    #将游戏人数上传到表中
+    # 将游戏人数上传到表中
     query = "UPDATE playnum SET play_num = %s"
     values = (params,)
     cursor.execute(query,values)
     # 提交更改到数据库
     db.commit()
+    # 清空定义的所有变量
     x_values.clear()
     isWin.clear()
     isdiff.clear()
@@ -95,29 +115,11 @@ def startgame(params):
     totalturn.clear()
     giveturn.clear()
     initial_probability_X.clear()
-
-
     return play_num
-    # for i in range(play_num):
-    #     query = "SELECT winrate,isdiff,iswin,x_value FROM euxrate Where id = %s"
-    #     values = (i+1,)
-    #     cursor.execute(query,values)
-    #     results = cursor.fetchall()
-    #     for row in results:
-    #         initial_probability_X[i] = row[0]
-    #         isdiff[i] = row[1]
-    #         isWin[i] = row[2]
-    #         x_values[i] = row[3]
 
-
-    # for i in range(play_num):
-    #     x_values.append(0)
-    #     isWin.append(None)
-    #     isdiff.append(0)
-    #     initial_probability_X.append(0.5)
-    # return str(play_num)
 # 选择游戏角色
 def pickrole(id,rid):
+    # 查询role表中的player，name
     query = "SELECT player,name FROM role WHERE id = %s"
     value = (rid,)
     cursor.execute(query,value)
@@ -125,6 +127,7 @@ def pickrole(id,rid):
     for row in result:
         ispick = row[0]
         rolename = row[1]
+        # 判断角色是否被其他玩家选择
         if(ispick):
             res = f"角色：{rolename}已被其他玩家使用！请重新选择"
             return res
@@ -138,6 +141,7 @@ def pickrole(id,rid):
 # 获取所有角色的信息
 def roleinfo():
     res = []
+    # 查询roleora表中的id，name，artinfo的值
     query1 = "SELECT id,name,artinfo FROM roleora ORDER BY id ASC"
     cursor.execute(query1)
     result = cursor.fetchall()
@@ -149,6 +153,7 @@ def hp_change(id,value,type):
     res = []
     type = int(type)
     value = int(value)
+    # 判断更改类型
     if(type == 0):
         query1 = "SELECT nowhp FROM role WHERE player = %s"
         value1 = (id,)
@@ -157,6 +162,7 @@ def hp_change(id,value,type):
         for row in result:
             nowhp = int(row[0])
             nowhp += value
+            # 将role表中的nowhp更改为新的值
             query2 = "UPDATE role SET nowhp = %s WHERE player = %s"
             value2 = (nowhp,id)
             cursor.execute(query2,value2)
@@ -170,6 +176,7 @@ def hp_change(id,value,type):
         for row in result:
             maxhp = int(row[0])
             maxhp += value
+            # 将role表中的maxhp更改为新的值
             query2 = "UPDATE role SET maxhp = %s WHERE player = %s"
             value2 = (maxhp, id)
             cursor.execute(query2, value2)
@@ -179,6 +186,7 @@ def hp_change(id,value,type):
 # 使用技能
 def skill_use(id,value):
     res = []
+    # 查询role表中art的值
     query1 = f"SELECT art{value},id FROM role WHERE player = %s"
     value1 = (id,)
     cursor.execute(query1, value1)
@@ -186,7 +194,9 @@ def skill_use(id,value):
     for row in result:
         nowcd = row[0]
         roid = row[1]
+        # 判断nowcd是否为0
         if(nowcd == 0):
+            # 查询roleora表中art的值
             query1 = f"SELECT art{value} FROM roleora WHERE id = %s"
             value1 = (roid,)
             cursor.execute(query1, value1)
@@ -195,6 +205,7 @@ def skill_use(id,value):
                 cdnum = row1[0]
                 print(cdnum)
                 nowcd += cdnum
+                # 将role表中的art更改为新的值
                 query2 = f"UPDATE role SET art{value} = %s WHERE player = %s"
                 value2 = (nowcd,id)
                 cursor.execute(query2,value2)
@@ -207,16 +218,19 @@ def skill_use(id,value):
 def cd_change(id,value,num):
     res = []
     num = int(num)
+    # 查询role表中art的值
     query1 = f"SELECT art{value} FROM role WHERE player = %s"
     value1 = (id,)
     cursor.execute(query1, value1)
     result = cursor.fetchall()
     for row in result:
         nowcd = int(row[0])
+        # 判断nowcd是否为0
         if (nowcd == 0):
             res = f"玩家{id}的技能{value}尚未处在cd中，无法进行更改！"
         else:
             nowcd += num
+            # 将role表中的art更改为新的值
             query2 = f"UPDATE role SET art{value} = %s WHERE player = %s"
             value2 = (nowcd, id)
             cursor.execute(query2, value2)
@@ -227,32 +241,42 @@ def cd_change(id,value,num):
 def turnend(sign):
     res = []
     tres = []
+    # 调用函数获取游戏人数
     play_num = playnum()
     for i in range(play_num):
         art = []
         tart = []
+        # 查询role表中所有art的值
         query1 = "SELECT art1,art2,art3,art4,art5,art6,art7,art8,art9,art10 FROM role WHERE player = %s"
         value1 = (i+1,)
         cursor.execute(query1,value1)
         result1 = cursor.fetchall()
         for row in result1:
             for j in range(10):
+                # 将查询结果全部存入art中
                 art.append(row[j])
+                # 判断art[j]是否存在且非零
                 if(art[j] and art[j] != 0):
+                    # 判断sign是否为1
                     if(sign == 1):
                         art[j] -= 1
+                    # 将总数存入tart中
                     tart.append(j+1)
+                    # 将role表中的art更改为新的值
                     query2 = f"UPDATE role SET art{j+1} = %s WHERE player = %s"
                     value2 = (art[j],i+1)
                     cursor.execute(query2,value2)
                     db.commit()
+        # 获取tart集合的长度
         la = len(tart)
+        # 查询role表中的maxhp，nowhp，turndef，totaldef，atk，distance的值
         query3 = "SELECT maxhp,nowhp,turndef,totaldef,atk,distance FROM role WHERE player = %s"
         value3 = (i+1,)
         cursor.execute(query3,value3)
         result3 = cursor.fetchall()
         result4 = []
         for t in range(la):
+            # 查询role表中art的值
             query4 = f"SELECT art{tart[t]} FROM role WHERE player = %s"
             value4 = (i+1,)
             cursor.execute(query4,value4)
@@ -261,7 +285,7 @@ def turnend(sign):
                 rsq = f"玩家{i+1}的技能{tart[t]}当前的cd为：{row5[0]} \n"
                 result4.append(rsq)
         res.append(result3)
-
+        # 将结果存入tres中
         for x in res[i]:
             qres = f"玩家{i+1}最大hp为：{x[0]}，当前hp为：{x[1]}，当前护甲为：{x[2]}，总护甲为：{x[3]}，当前ATK为：{x[4]}，当前攻击距离为：{x[5]}。 \n\n"
             le = len(result4)
@@ -621,8 +645,7 @@ def calculate_probability_Y(i):
 # 概率公式
 def calculate_score(x,y,i):
     # 定义公式
-    formula = (0.5 + 0.25 * (x ** 0.1) - 0.25 ** (y ** 0.2) +
-               0.05 * (y ** 0.1) * ((x - 1) ** 2.4))
+    formula = 0.5+0.1*x
     # 返回计算结果
     initial_probability_X[i] = formula
 # 判定是否获胜
